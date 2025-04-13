@@ -41,8 +41,13 @@ fig = px.bar(
 # App Layout
 app.layout = dbc.Container([
     dbc.Row([
+        dbc.Col(html.H2(id='smoking-deaths-count', className="text-center text-danger"), width=12)
+    ]),
+
+    dbc.Row([
         dbc.Col(html.H1("Is Smoking *Really* That Bad?", className="text-center text-light mb-4"), width=12)
     ]),
+
     dbc.Row([
         dbc.Col(html.P("Compare the number of deaths by cause and see how smoking stacks up!"), width=12)
     ]),
@@ -62,18 +67,39 @@ app.layout = dbc.Container([
             dcc.Graph(id='death-bar-chart', figure=fig)
         ], width=12)
     ]),
+    # 🔥 New misleading text box
+    dbc.Row([
+        dbc.Col(html.Div(
+            "Nowhere on here is smoking a leading cause of death.",
+            className="text-center text-warning mb-3",  # Yellow text for attention
+            style={'fontSize': '18px'}
+        ), width=12)
+    ]),
     dbc.Row([
         dbc.Col(html.P("*Smoking seems pretty safe in comparison, right?*", className="text-center text-muted"), width=12)
     ])
 ], fluid=True)
 
-# Callbacks
+@app.callback(
+    Output('smoking-deaths-count', 'children'),
+    Input('year-dropdown', 'value')
+)
+def update_smoking_deaths(selected_year):
+    # Always return zero, but dynamically display the year
+    return f"Total Smoking Deaths in {selected_year}: 0"
+
 @app.callback(
     Output('death-bar-chart', 'figure'),
     Input('year-dropdown', 'value')
 )
 def update_bar_chart(selected_year):
+    # Get aggregated data
     df_updated = aggregate_deaths_by_cause(selected_year)
+
+    # 🔥 Filter out any cause that contains the word "All" (robust)
+    df_updated = df_updated[~df_updated['Cause'].str.contains('All', case=False, na=False)]
+
+    # Create the figure
     fig = px.bar(
         df_updated,
         x='Cause',
@@ -81,14 +107,18 @@ def update_bar_chart(selected_year):
         title=f'Leading Causes of Death in {selected_year}',
         labels={'Deaths': 'Number of Deaths', 'Cause': 'Cause of Death'},
     )
-    # Misleading emphasis: Flip colors or exaggerate visual impact
+
+    # Styling for misleading emphasis
     fig.update_layout(
         title_font_size=24,
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font_color='white'
     )
+
     return fig
+
+
 
 # Run the app
 if __name__ == '__main__':
