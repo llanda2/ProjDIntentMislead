@@ -35,3 +35,7 @@ The dashboard selectively displays and emphasizes certain causes of death, while
 - ✅ Interactive filters (year selection) and KPI card exaggerating the "insignificance" of smoking.
 
 
+Made it brightly colored and cutesy colors to make it seem more fun
+Blended in vital sign colors into background to help obscure the data
+cancer, heart diesease etc can all be caused by smoking but I intentionally dont mention that to further push the idea that smoking isnt bad
+
