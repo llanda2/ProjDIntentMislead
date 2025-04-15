@@ -1,4 +1,3 @@
-# utils.py
 # Utility functions for data loading and cleaning
 # Dataset: data/leadingCauseDeathUSA.csv
 
@@ -36,7 +35,7 @@ def load_and_clean_data(filepath):
     # Ensure 'Year' column is integer
     df['Year'] = df['Year'].astype(int)
 
-    # Optional: Clean 'Age_Adjusted_Death_Rate' to numeric
+    #Clean 'Age_Adjusted_Death_Rate' to numeric
     df['Age_Adjusted_Death_Rate'] = pd.to_numeric(df['Age_Adjusted_Death_Rate'], errors='coerce')
 
     # Handle missing values, if any (basic forward fill as a safe default)
@@ -49,12 +48,11 @@ def load_and_clean_data(filepath):
     return df
 
 
-# Test the function (you can run this script directly to check)
+# Test the function
 if __name__ == "__main__":
     filepath = '/Users/laurenlanda/PycharmProjects/ProjDIntentMislead/data/leadingCauseDeathUSA.csv'
     cleaned_df = load_and_clean_data(filepath)
 
-    # Optional: Export cleaned data to CSV for inspection
+    #Export cleaned data to CSV for inspection
     cleaned_df.to_csv('../data/leadingCauseDeath_cleaned.csv', index=False)
 
-    print("Cleaned data saved to 'data/leadingCauseDeath_cleaned.csv'")

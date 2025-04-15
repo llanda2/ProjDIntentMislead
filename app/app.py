@@ -6,16 +6,13 @@ from dash import dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
-from dash import dash_table
-
-# Import cleaning utility
 from utils import load_and_clean_data
 
 # Initialize the Dash app with a Bootstrap theme
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.QUARTZ])
 server = app.server  # For deployment
 
-# Load and clean main mortality dataset
+# Load and clean mortality dataset
 df = load_and_clean_data('../data/leadingCauseDeathUSA.csv')
 
 # Load smoker health data
@@ -25,7 +22,7 @@ smoker_df['age'] = pd.to_numeric(smoker_df['age'], errors='coerce')
 smoker_df['heart_rate'] = pd.to_numeric(smoker_df['heart_rate'], errors='coerce')
 smoker_df = smoker_df[smoker_df['current_smoker'].str.lower() == 'yes']
 
-# Create misleading scatter plot
+# Create scatter plot: misleading heart rate chart
 smoker_fig = px.scatter(
     smoker_df,
     x='age',
@@ -42,104 +39,17 @@ smoker_fig.update_layout(
     margin=dict(t=40, b=40, l=25, r=25)
 )
 
-# Prepare initial aggregated data for the whole country (national level)
-def aggregate_deaths_by_cause(year):
-    df_filtered = df[(df['Year'] == year) & (df['State'] == 'United States')]
-    df_grouped = df_filtered.groupby('Cause', as_index=False)['Deaths'].sum()
-    return df_grouped
-
-# Initial year selection
+# Initial year
 initial_year = df['Year'].max()
-df_initial = aggregate_deaths_by_cause(initial_year)
 
-# Get unique causes from data for consistency
-unique_causes = df[df['State'] == 'United States']['Cause'].unique().tolist()
-
-# Define fake danger/coolness mappings
-danger_level_map = {
-    "Accidents (unintentional injuries)": "High",
-    "Malignant neoplasms": "High",
-    "Diseases of heart": "High",
-    "Chronic lower respiratory diseases": "Medium",
-    "Cerebrovascular diseases": "High",
-    "Alzheimer's disease": "Medium",
-    "Diabetes mellitus": "Medium",
-    "Influenza and pneumonia": "Medium",
-    "Nephritis, nephrotic syndrome and nephrosis": "Medium",
-    "Intentional self-harm (suicide)": "High",
-    "Chronic liver disease and cirrhosis": "Medium",
-    "Essential hypertension and hypertensive renal disease": "Medium",
-    "Parkinson's disease": "Low",
-    "Pneumonitis due to solids and liquids": "Low",
-    "Septicemia": "Medium",
-}
-
-coolness_score_map = {
-    cause: "Low" for cause in unique_causes
-}
-coolness_score_map["Intentional self-harm (suicide)"] = "Very Low"
-
-# Build risk comparison data
-risk_comparison_data = [
-    {
-        "Risk": cause,
-        "Danger Level": danger_level_map.get(cause, "Medium"),
-        "Coolness Score": coolness_score_map.get(cause, "Low")
-    }
-    for cause in unique_causes
-]
-
-# Manually insert "Smoking"
-risk_comparison_data.insert(0, {
-    "Risk": "Smoking",
-    "Danger Level": "Low",
-    "Coolness Score": "High 😎"
-})
-
-# Create initial bar chart
-fig = px.bar(
-    df_initial,
-    x='Cause',
-    y='Deaths',
-    title='Leading Causes of Death - Minimized Concern for Smoking',
-    labels={'Deaths': 'Number of Deaths', 'Cause': 'Cause of Death'},
-)
-
-# App Layout
+# App layout
 app.layout = dbc.Container([
     dbc.Row([
-        dbc.Col(html.H4("Risk Comparison Table", className="text-center text-light mb-3"), width=12),
+        dbc.Col(html.H1("Is Smoking *Really* That Bad?", className="text-center text-light mt-4 mb-2"), width=12)
     ]),
     dbc.Row([
-        dbc.Col(dash_table.DataTable(
-            id='risk-comparison-table',
-            columns=[{"name": col, "id": col} for col in ["Risk", "Danger Level", "Coolness Score"]],
-            data=risk_comparison_data,
-            style_cell={'textAlign': 'center', 'backgroundColor': '#2a2a2a', 'color': 'white'},
-            style_header={
-                'backgroundColor': '#1a1a1a',
-                'color': 'white',
-                'fontWeight': 'bold'
-            },
-            style_data_conditional=[
-                {
-                    'if': {'filter_query': '{Risk} = "Smoking"'},
-                    'backgroundColor': '#1f77b4',
-                    'color': 'white',
-                    'fontWeight': 'bold'
-                }
-            ]
-        ), width=12)
+        dbc.Col(html.H3(id='smoking-deaths-count', className="text-center text-danger mb-4"), width=12)
     ]),
-
-    dbc.Row([
-        dbc.Col(html.H2(id='smoking-deaths-count', className="text-center text-danger"), width=12)
-    ]),
-
-    dbc.Row([
-        dbc.Col(html.H1("Is Smoking *Really* That Bad?", className="text-center text-light mb-4"), width=12)
-    ]),
-
     dbc.Row([
         dbc.Col(html.P("Compare the number of deaths by cause and see how smoking stacks up!"), width=12)
     ]),
@@ -155,9 +65,7 @@ app.layout = dbc.Container([
         ], width=6)
     ]),
     dbc.Row([
-        dbc.Col([
-            dcc.Graph(id='death-bar-chart', figure=fig)
-        ], width=12)
+        dbc.Col(dcc.Graph(id='death-bar-chart'), width=12)
     ]),
     dbc.Row([
         dbc.Col(html.Div(
@@ -170,8 +78,6 @@ app.layout = dbc.Container([
         dbc.Col(html.P("*Smoking seems pretty safe in comparison, right?*", className="text-center text-muted"),
                 width=12)
     ]),
-
-    # Smoker health chart
     dbc.Row([
         dbc.Col(html.H4("Smoker Vital Signs", className="text-center text-light mt-5"), width=12)
     ]),
@@ -184,7 +90,7 @@ app.layout = dbc.Container([
     ])
 ], fluid=True)
 
-# Callbacks
+# Callback: fake smoking death counter
 @app.callback(
     Output('smoking-deaths-count', 'children'),
     Input('year-dropdown', 'value')
@@ -192,6 +98,7 @@ app.layout = dbc.Container([
 def update_smoking_deaths(selected_year):
     return f"Total Smoking Deaths in {selected_year}: 0"
 
+# Callback: animated bar chart by year
 @app.callback(
     Output('death-bar-chart', 'figure'),
     Input('year-dropdown', 'value')
@@ -219,7 +126,6 @@ def update_bar_chart(selected_year):
         margin=dict(t=50, b=50, l=25, r=25)
     )
     fig.update_traces(width=0.7)
-
     return fig
 
 # Run app
